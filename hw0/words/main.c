@@ -45,7 +45,27 @@ WordCount *word_counts = NULL;
  * Useful functions: fgetc(), isalpha().
  */
 int num_words(FILE* infile) {
-  int num_words = 0;
+    int num_words = 0;
+    int last_character = 0;
+    char ch;
+/*     num_words increase by 1 if detect a word seperator pair
+    In ascii, space:32, linefeed:10 */
+    while((ch = fgetc(infile)) && ch!=EOF){
+        if(((ch == 32)||(ch == 10)) && last_character){
+            num_words++;
+            last_character = 0;
+        }else if((ch>0x1F) && (ch<0x7F)){
+            last_character = 1;
+        }
+        else{
+          /* Do nothing */
+        }
+    }
+    /* If file end with a word */
+    if(last_character){
+        num_words++;
+        last_character = 0;
+    }
 
   return num_words;
 }
@@ -57,6 +77,42 @@ int num_words(FILE* infile) {
  * Useful functions: fgetc(), isalpha(), tolower(), add_word().
  */
 void count_words(WordCount **wclist, FILE *infile) {
+    /*  1. Extract one word 
+        2. Find in wclist
+            2.1 If exist, counter +1
+            2.2 If not exsit, create new node
+    */
+    char word[MAX_WORD_LEN];
+    char ch;
+    int index = 0;
+    int last_character = 0;
+
+    while((ch = fgetc(infile)) && ch!=EOF){
+        if(((ch == 32)||(ch == 10)) && last_character){
+            last_character = 0;
+            word[index]=0;
+            add_word(wclist,word);
+            index = 0;
+        }else if(isalpha(ch)){
+            last_character = 1;
+            if(isupper(ch)){
+                ch = (char)tolower(ch);
+            }
+            word[index++] = ch;
+        }
+        else{
+          /* Do nothing */
+        }
+    }
+    /* If file end with a word */
+    if(last_character){
+        last_character = 0;
+        word[index]=0;
+        add_word(wclist,word);
+        index = 0;
+    }
+
+
 }
 
 /*
@@ -64,6 +120,18 @@ void count_words(WordCount **wclist, FILE *infile) {
  * Useful function: strcmp().
  */
 static bool wordcount_less(const WordCount *wc1, const WordCount *wc2) {
+//  WordCount temp;
+  if((wc1->count<wc2->count) || ((wc1->count==wc2->count) && (strcmp(wc1->word,wc2->word)<0))){
+    /* Switch wc1 and wc2 */
+/*     strcpy(temp.word,wc1->word);
+    temp.count = wc1->count;
+    strcpy(wc1->word,wc2->word);
+    wc1->count = wc2->count;
+    strcpy(wc2->word,temp.word);
+    wc2->count = temp.count; */
+    return 1;
+  }
+
   return 0;
 }
 
@@ -99,7 +167,6 @@ int main (int argc, char *argv[]) {
       {"help", no_argument, 0, 'h'},
       {0, 0, 0, 0}
   };
-
   // Sets flags
   while ((i = getopt_long(argc, argv, "cfh", long_options, NULL)) != -1) {
       switch (i) {
@@ -131,15 +198,25 @@ int main (int argc, char *argv[]) {
     // At least one file specified. Useful functions: fopen(), fclose().
     // The first file can be found at argv[optind]. The last file can be
     // found at argv[argc-1].
+
+    if ((infile = fopen(argv[argc-1],"r")) == NULL){
+        printf("\nError on open file %s, press ENTER to exit.", argv[argc-1]);
+        getchar();
+        exit(1);
+    };
   }
 
   if (count_mode) {
+    total_words = num_words(infile);
     printf("The total number of words is: %i\n", total_words);
   } else {
+    count_words(&word_counts,infile);
     wordcount_sort(&word_counts, wordcount_less);
-
     printf("The frequencies of each word are: \n");
     fprint_words(word_counts, stdout);
 }
+
+fclose(infile);
+
   return 0;
 }

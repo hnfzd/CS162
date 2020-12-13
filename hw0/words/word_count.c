@@ -35,17 +35,51 @@ void init_words(WordCount **wclist) {
 
 size_t len_words(WordCount *wchead) {
     size_t len = 0;
+    while(wchead){
+        wchead = wchead->next;
+        len++;
+    }
     return len;
 }
 
 WordCount *find_word(WordCount *wchead, char *word) {
   /* Return count for word, if it exists */
-  WordCount *wc = NULL;
+    WordCount *wc = NULL;
+    wc = wchead;
+    while(wc && strcmp(wc->word,word)){
+        wc = wc->next;         //move to next node
+    }
   return wc;
 }
 
 void add_word(WordCount **wclist, char *word) {
-  /* If word is present in word_counts list, increment the count, otw insert with count 1. */
+    /* If word is present in word_counts list, increment the count, otw insert with count 1. */
+    WordCount *wc = NULL;
+    WordCount *new_wc = NULL;
+    char * w;
+    w = new_string(word);
+    if((wc = find_word(*wclist,w)) != NULL){
+        wc->count++;
+    }else{
+        wc = *wclist;
+        /* Append new node in the end of link list */
+        new_wc = (WordCount *)malloc(sizeof(WordCount));
+        new_wc->count = 1;
+        new_wc->word = w;
+        new_wc->next = NULL;
+        /* If wclist is not NULL, append node into last list */
+        if(wc){   
+          while(wc->next){
+            wc = wc->next;
+          }
+          /* Stop before NULL, append */
+          wc->next = new_wc;
+        }
+        else{
+          /* Current list is NULL, init first node */
+          *wclist = new_wc;
+        }
+    }
 }
 
 void fprint_words(WordCount *wchead, FILE *ofile) {
